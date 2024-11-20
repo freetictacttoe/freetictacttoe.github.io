@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; }
+        .cell { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; border: 1px solid #000; font-size: 24px; cursor: pointer; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Tic Tac Toe</h1>
+    <div id="board"></div>
+    <div id="result" class="hidden"></div>
+    <button id="restart" class="hidden">Restart</button>
+    <div id="scoreboard">
+        <h2>Scores</h2>
+        <div>X: <span id="scoreX">0</span></div>
+        <div>O: <span id="scoreO">0</span></div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js"></script>
+    <script>
+        // Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBly1WS0YQq_DdtEd7ct8MWdMq3XoNlH-8",
+  authDomain: "ignitecheckin.firebaseapp.com",
+  projectId: "ignitecheckin",
+  storageBucket: "ignitecheckin.firebasestorage.app",
+  messagingSenderId: "128183687677",
+  appId: "1:128183687677:web:3f494473e54b8f84076194",
+  measurementId: "G-BCW29RXDQ5"
+};
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Game logic
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let scores = { X: 0, O: 0 };
+
+        const boardElement = document.getElementById('board');
+        const resultElement = document.getElementById('result');
+        const restartButton = document.getElementById('restart');
+        const scoreXElement = document.getElementById('scoreX');
+        const scoreOElement = document.getElementById('scoreO');
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            board.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.className = 'cell';
+                cellElement.innerText = cell;
+                cellElement.addEventListener('click', () => handleCellClick(index));
+                boardElement.appendChild(cellElement);
+            });
+        }
+
+        function handleCellClick(index) {
+            if (board[index] === '' && !checkWinner()) {
+                board[index] = currentPlayer;
+                if (checkWinner()) {
+                    resultElement.innerText = `${currentPlayer} wins!`;
+                    resultElement.classList.remove('hidden');
+                    updateScore(currentPlayer);
+                } else if (board.every(cell => cell !== '')) {
+                    resultElement.innerText = 'It\'s a draw!';
+                    resultElement.classList.remove('hidden');
+                }
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                createBoard();
+            }
+        }
+
+        function checkWinner() {
+            const winConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+            return winConditions.some(condition => {
+                const [a, b, c] = condition;
+                return board[a] && board[a] === board[b] && board[a] === board[c];
+            });
+        }
+
+        function updateScore(winner) {
+            scores[winner]++;
+            scoreXElement.innerText = scores.X;
+            scoreOElement.innerText = scores.O;
+            db.collection("scores").doc("ticTacToe").set(scores)
+                .then(() => console.log("Scores updated in Firestore"))
+                .catch((error) => console.error("Error updating scores: ", error));
+        }
+
+        function restartGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            resultElement.classList.add('hidden');
+            createBoard();
+        }
+
+        restartButton.addEventListener('click', restartGame);
+        document.addEventListener('DOMContentLoaded', createBoard);
+    </script>
+</body>
+</html>
